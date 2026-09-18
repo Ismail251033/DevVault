@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 const errorMessage = (error, fallback) => import.meta.env.DEV && error?.message ? error.message : fallback
 
 export function AuthPage({ mode }) {
-  const { user, signIn, signUp, reset } = useAuth()
+  const { user, signIn, signUp, reset, isConfigured } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
@@ -13,16 +13,26 @@ export function AuthPage({ mode }) {
   const nav = useNavigate()
   if (user) return <Navigate to="/dashboard" replace />
   const submit = async (event) => {
-    event.preventDefault(); setBusy(true); setMessage('')
-    const result = mode === 'login' ? await signIn(email, password) : mode === 'register' ? await signUp(email, password) : await reset(email)
-    setBusy(false)
-    if (result.error) setMessage(errorMessage(result.error, 'Unable to complete that request. Please check your details and try again.'))
-    else if (mode === 'forgot') setMessage('Check your email for a password reset link.')
-    else if (mode === 'register') setMessage('Check your email to confirm your account.')
-    else nav('/dashboard')
+    event.preventDefault()
+    console.info(`[AUTH] ${mode.toUpperCase()} SUBMIT`, { configured: isConfigured })
+    setBusy(true); setMessage('')
+    try {
+      const result = mode === 'login' ? await signIn(email, password) : mode === 'register' ? await signUp(email, password) : await reset(email)
+      if (result.error) {
+        console.error('[AUTH] FORM RESULT ERROR', { operation: mode, errorMessage: result.error.message })
+        setMessage(errorMessage(result.error, 'Unable to complete that request. Please check your details and try again.'))
+      } else if (mode === 'forgot') setMessage('Check your email for a password reset link.')
+      else if (mode === 'register') setMessage('Check your email to confirm your account.')
+      else nav('/dashboard')
+    } catch (error) {
+      console.error('[AUTH] FORM SUBMIT ERROR', { operation: mode, errorMessage: error?.message })
+      setMessage(errorMessage(error, 'Unable to complete that request. Please try again.'))
+    } finally {
+      setBusy(false)
+    }
   }
   const title = mode === 'login' ? 'Welcome back' : mode === 'register' ? 'Create your vault' : 'Reset your password'
-  return <div className="auth"><div className="auth-card"><div className="brand"><span className="brand-mark">D</span>DEVVAULT</div><h1>{title}</h1><p>{mode === 'login' ? 'Your developer workspace is waiting.' : mode === 'register' ? 'A calm place for your work.' : 'We’ll send a secure reset link.'}</p><form onSubmit={submit}><label>Email<input type="email" required value={email} onChange={event => setEmail(event.target.value)} /></label>{mode !== 'forgot' && <label>Password<input type="password" minLength="6" required value={password} onChange={event => setPassword(event.target.value)} /></label>}<button className="primary" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'register' ? 'Create account' : 'Send reset link'}</button></form>{message && <div className="form-message">{message}</div>}<div className="auth-links">{mode === 'login' ? <><Link to="/forgot-password">Forgot password?</Link><span>New here? <Link to="/register">Create account</Link></span></> : <Link to="/login">Back to sign in</Link>}</div></div></div>
+  return <div className="auth"><div className="auth-card"><div className="brand"><span className="brand-mark">D</span>DEVVAULT</div><h1>{title}</h1><p>{mode === 'login' ? 'Your developer workspace is waiting.' : mode === 'register' ? 'A calm place for your work.' : 'We’ll send a secure reset link.'}</p><form onSubmit={submit}><label>Email<input type="email" required value={email} onChange={event => setEmail(event.target.value)} /></label>{mode !== 'forgot' && <label>Password<input type="password" minLength="6" required value={password} onChange={event => setPassword(event.target.value)} /></label>}<button type="submit" className="primary" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'register' ? 'Create account' : 'Send reset link'}</button></form>{message && <div className="form-message">{message}</div>}<div className="auth-links">{mode === 'login' ? <><Link to="/forgot-password">Forgot password?</Link><span>New here? <Link to="/register">Create account</Link></span></> : <Link to="/login">Back to sign in</Link>}</div></div></div>
 }
 
 export function ResetPassword() {
