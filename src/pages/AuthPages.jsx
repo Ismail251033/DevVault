@@ -12,20 +12,18 @@ export function AuthPage({ mode }) {
   const [busy, setBusy] = useState(false)
   const nav = useNavigate()
   if (user) return <Navigate to="/dashboard" replace />
+  if (!isConfigured) return <div className="auth"><div className="auth-card"><div className="brand"><span className="brand-mark">D</span>DEVVAULT</div><h1>Authentication unavailable</h1><p>This deployment is missing its Supabase public configuration. Redeploy after confirming the Vite environment variables are available to this deployment.</p></div></div>
   const submit = async (event) => {
     event.preventDefault()
-    console.info(`[AUTH] ${mode.toUpperCase()} SUBMIT`, { configured: isConfigured })
     setBusy(true); setMessage('')
     try {
       const result = mode === 'login' ? await signIn(email, password) : mode === 'register' ? await signUp(email, password) : await reset(email)
       if (result.error) {
-        console.error('[AUTH] FORM RESULT ERROR', { operation: mode, errorMessage: result.error.message })
         setMessage(errorMessage(result.error, 'Unable to complete that request. Please check your details and try again.'))
       } else if (mode === 'forgot') setMessage('Check your email for a password reset link.')
       else if (mode === 'register') setMessage('Check your email to confirm your account.')
       else nav('/dashboard')
     } catch (error) {
-      console.error('[AUTH] FORM SUBMIT ERROR', { operation: mode, errorMessage: error?.message })
       setMessage(errorMessage(error, 'Unable to complete that request. Please try again.'))
     } finally {
       setBusy(false)

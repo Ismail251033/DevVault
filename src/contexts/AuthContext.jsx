@@ -8,23 +8,20 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.info('[AUTH] SUPABASE CLIENT', { configured: isSupabaseConfigured })
     if (!isSupabaseConfigured) {
-      console.error('[AUTH] SUPABASE CLIENT UNAVAILABLE: required VITE variables are missing')
       setLoading(false)
       return undefined
     }
     const supabase = getSupabase()
     supabase.auth.getSession().then(({ data, error }) => {
-      console.info('[AUTH] INITIAL SESSION RESULT', { hasSession: Boolean(data.session), errorMessage: error?.message })
+      if (error) console.error('[AUTH] Unable to restore session', { message: error.message, status: error.status, code: error.code })
       setUser(data.session?.user ?? null)
       setLoading(false)
     }).catch((error) => {
-      console.error('[AUTH] INITIAL SESSION ERROR', { errorMessage: error?.message })
+      console.error('[AUTH] Unable to restore session', { message: error?.message })
       setLoading(false)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.info('[AUTH] STATE CHANGE', { event, hasSession: Boolean(session) })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
@@ -33,13 +30,12 @@ export function AuthProvider({ children }) {
 
   const authCall = async (label, operation) => {
     try {
-      console.info('[AUTH] SUPABASE CLIENT', { configured: isSupabaseConfigured })
-      console.info('[AUTH] CALLING SUPABASE AUTH', { operation: label })
-      const result = await operation(getSupabase())
-      console.info('[AUTH] SUPABASE AUTH RESULT', { operation: label, hasSession: Boolean(result.data?.session), hasError: Boolean(result.error), errorMessage: result.error?.message })
+      const supabase = getSupabase()
+      const result = await operation(supabase)
+      if (result.error) console.error('[AUTH] Supabase Auth request failed', { operation: label, message: result.error.message, status: result.error.status, code: result.error.code })
       return result
     } catch (error) {
-      console.error('[AUTH] SUPABASE AUTH ERROR', { operation: label, errorMessage: error?.message })
+      console.error('[AUTH] Supabase Auth request failed', { operation: label, message: error?.message, status: error?.status, code: error?.code })
       return { data: null, error }
     }
   }
