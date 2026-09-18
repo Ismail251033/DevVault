@@ -31,6 +31,8 @@ VITE_SUPABASE_ANON_KEY=
 
 The app uses the existing Supabase tables `projects`, `tasks`, `snippets`, and `notes`. It makes RLS-compatible client requests using the signed-in user's ID for inserts. No service-role secret, migrations, or database changes are required.
 
+For password recovery in production, add `https://dev-vault-flax.vercel.app/reset-password` to Supabase Auth's allowed Redirect URLs. The application derives `redirectTo` from the active origin, so it uses that exact URL on Vercel and the local development URL locally.
+
 ## Production
 
 ```bash
